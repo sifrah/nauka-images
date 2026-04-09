@@ -50,6 +50,12 @@ dnf --installroot="${ROOTFS}" --releasever=9 \
     curl \
     rootfiles
 
+# 2b. Install tini (static binary — not in Rocky base repos)
+TINI_VERSION="v0.19.0"
+curl -fsSL "https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini-static-amd64" \
+    -o "${ROOTFS}/usr/bin/tini"
+chmod +x "${ROOTFS}/usr/bin/tini"
+
 # 3. Configure SSH
 mkdir -p "${ROOTFS}/etc/ssh/sshd_config.d"
 cat > "${ROOTFS}/etc/ssh/sshd_config.d/nauka.conf" << 'EOF'

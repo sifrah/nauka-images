@@ -20,7 +20,8 @@ chroot "${ROOTFS}" apt-get install -y --no-install-recommends \
     net-tools \
     passwd \
     ca-certificates \
-    curl
+    curl \
+    tini
 
 # 3. Configure SSH
 mkdir -p "${ROOTFS}/etc/ssh/sshd_config.d"
