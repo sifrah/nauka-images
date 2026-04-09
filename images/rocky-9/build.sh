@@ -15,10 +15,28 @@ ROOTFS=$(mktemp -d)
 
 echo "Building ${IMAGE_NAME}..."
 
-# 1. Bootstrap minimal Rocky Linux
+# 1. Configure Rocky Linux 9 repos for cross-distro bootstrap
+REPO_DIR="${ROOTFS}/etc/yum.repos.d"
+mkdir -p "${REPO_DIR}"
+cat > "${REPO_DIR}/rocky.repo" << 'EOF'
+[baseos]
+name=Rocky Linux 9 - BaseOS
+baseurl=https://dl.rockylinux.org/pub/rocky/9/BaseOS/x86_64/os/
+gpgcheck=0
+enabled=1
+
+[appstream]
+name=Rocky Linux 9 - AppStream
+baseurl=https://dl.rockylinux.org/pub/rocky/9/AppStream/x86_64/os/
+gpgcheck=0
+enabled=1
+EOF
+
+# 2. Bootstrap minimal Rocky Linux
 dnf --installroot="${ROOTFS}" --releasever=9 \
-    --repo=baseos --repo=appstream \
+    --setopt=reposdir="${REPO_DIR}" \
     --setopt=install_weak_deps=False \
+    --nogpgcheck \
     install -y \
     rocky-release \
     coreutils \
@@ -32,7 +50,7 @@ dnf --installroot="${ROOTFS}" --releasever=9 \
     curl \
     rootfiles
 
-# 2. Configure SSH
+# 3. Configure SSH
 mkdir -p "${ROOTFS}/etc/ssh/sshd_config.d"
 cat > "${ROOTFS}/etc/ssh/sshd_config.d/nauka.conf" << 'EOF'
 PermitRootLogin yes
@@ -48,14 +66,14 @@ mkdir -p "${ROOTFS}/run/sshd"
 mkdir -p "${ROOTFS}/root/.ssh"
 chmod 700 "${ROOTFS}/root/.ssh"
 
-# 3. Set default root password (locked — SSH key only)
+# 4. Set default root password (locked — SSH key only)
 chroot "${ROOTFS}" passwd -l root
 
-# 4. Clean up
-dnf --installroot="${ROOTFS}" clean all
+# 5. Clean up
+dnf --installroot="${ROOTFS}" --setopt=reposdir="${REPO_DIR}" clean all
 rm -rf "${ROOTFS}/var/cache/dnf/"*
 
-# 5. Create tarball
+# 6. Create tarball
 echo "Creating ${IMAGE_NAME}.tar.gz..."
 tar -czf "${IMAGE_NAME}.tar.gz" -C "${ROOTFS}" .
 
