@@ -15,6 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y debootstrap
+
       - name: Build image
         run: |
           cd images/${{ matrix.image }}
@@ -35,7 +38,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
 
-      - name: Create Release
+      - name: Create or update Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
