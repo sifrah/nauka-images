@@ -20,8 +20,13 @@ chroot "${ROOTFS}" apt-get install -y --no-install-recommends \
     net-tools \
     passwd \
     ca-certificates \
-    curl \
-    tini
+    curl
+
+# 2b. Install tini (static binary for zombie reaping)
+TINI_VERSION="v0.19.0"
+curl -fsSL "https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini-static-${ARCH}" \
+    -o "${ROOTFS}/usr/bin/tini"
+chmod +x "${ROOTFS}/usr/bin/tini"
 
 # 3. Configure SSH
 mkdir -p "${ROOTFS}/etc/ssh/sshd_config.d"
