@@ -18,6 +18,12 @@ jobs:
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y debootstrap
 
+      - name: Read image metadata
+        id: meta
+        run: |
+          META="images/${{ matrix.image }}/image.json"
+          echo "type=$(jq -r .type "$META")" >> "$GITHUB_OUTPUT"
+
       - name: Build image
         run: |
           cd images/${{ matrix.image }}
@@ -27,8 +33,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.image }}-amd64
-          path: images/${{ matrix.image }}/${{ matrix.image }}-amd64.tar.gz
+          name: ${{ matrix.image }}-${{ steps.meta.outputs.type }}-amd64
+          path: images/${{ matrix.image }}/${{ matrix.image }}-${{ steps.meta.outputs.type }}-amd64.tar.gz
 
   release:
     needs: build
@@ -36,7 +42,42 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
+
+      - name: Generate manifest
+        run: |
+          echo '{"version":1,"images":[' > manifest.json
+          first=true
+          for meta in images/*/image.json; do
+            image_dir=$(dirname "$meta")
+            image_name=$(basename "$image_dir")
+            type=$(jq -r .type "$meta")
+            description=$(jq -r .description "$meta")
+            logo=$(jq -r .logo "$meta")
+
+            # Detect available architectures from built artifacts
+            archs="["
+            arch_first=true
+            for artifact in ${image_name}-${type}-*/; do
+              arch=$(echo "$artifact" | sed "s/${image_name}-${type}-//;s|/||")
+              if [ "$arch_first" = true ]; then arch_first=false; else archs="${archs},"; fi
+              archs="${archs}\"${arch}\""
+            done
+            archs="${archs}]"
+
+            if [ "$first" = true ]; then first=false; else echo ',' >> manifest.json; fi
+            jq -n \
+              --arg name "$image_name" \
+              --arg type "$type" \
+              --argjson arch "$archs" \
+              --arg description "$description" \
+              --arg logo "$logo" \
+              '{name:$name,type:$type,arch:$arch,description:$description,logo:$logo}' >> manifest.json
+          done
+          echo ']}' >> manifest.json
+          cat manifest.json
 
       - name: Create or update Release
         uses: softprops/action-gh-release@v2
@@ -44,5 +85,6 @@ jobs:
           tag_name: latest
           name: Latest Images
           files: |
+            manifest.json
             **/*.tar.gz
           make_latest: true
