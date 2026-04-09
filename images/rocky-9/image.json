@@ -1,0 +1,6 @@
+{
+  "name": "rocky-9",
+  "type": "container",
+  "description": "Rocky Linux 9 minimal rootfs",
+  "logo": "https://rockylinux.org/brand/logo-dark.svg"
+}
