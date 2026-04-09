@@ -4,7 +4,7 @@
 set -euo pipefail
 
 ARCH=$(dpkg --print-architecture 2>/dev/null || echo "amd64")
-IMAGE_NAME="ubuntu-24.04-${ARCH}"
+IMAGE_NAME="ubuntu-24.04-container-${ARCH}"
 ROOTFS=$(mktemp -d)
 
 echo "Building ${IMAGE_NAME}..."

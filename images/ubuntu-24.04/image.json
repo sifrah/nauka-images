@@ -1,0 +1,6 @@
+{
+  "name": "ubuntu-24.04",
+  "type": "container",
+  "description": "Ubuntu 24.04 LTS minimal rootfs",
+  "logo": "https://assets.ubuntu.com/v1/circle-of-friends.svg"
+}
