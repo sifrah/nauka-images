@@ -61,24 +61,27 @@ jobs:
             description=$(jq -r .description "$meta")
             logo=$(jq -r .logo "$meta")
 
-            # Detect available architectures from built artifacts
-            archs="["
-            arch_first=true
-            for artifact in ${image_name}-${type}-*/; do
-              arch=$(echo "$artifact" | sed "s/${image_name}-${type}-//;s|/||")
-              if [ "$arch_first" = true ]; then arch_first=false; else archs="${archs},"; fi
-              archs="${archs}\"${arch}\""
+            # Detect available architectures and sizes from built artifacts
+            sizes="{}"
+            for artifact_dir in ${image_name}-${type}-*/; do
+              arch=$(echo "$artifact_dir" | sed "s/${image_name}-${type}-//;s|/||")
+              tarball=$(find "$artifact_dir" -name "*.tar.gz" | head -1)
+              if [ -n "$tarball" ]; then
+                size=$(stat --format="%s" "$tarball")
+                sizes=$(echo "$sizes" | jq --arg arch "$arch" --argjson size "$size" '. + {($arch): $size}')
+              fi
             done
-            archs="${archs}]"
+            archs=$(echo "$sizes" | jq '[keys[]]')
 
             if [ "$first" = true ]; then first=false; else echo ',' >> manifest.json; fi
             jq -n \
               --arg name "$image_name" \
               --arg type "$type" \
               --argjson arch "$archs" \
+              --argjson sizes "$sizes" \
               --arg description "$description" \
               --arg logo "$logo" \
-              '{name:$name,type:$type,arch:$arch,description:$description,logo:$logo}' >> manifest.json
+              '{name:$name,type:$type,arch:$arch,sizes:$sizes,description:$description,logo:$logo}' >> manifest.json
           done
           echo ']}' >> manifest.json
           cat manifest.json
